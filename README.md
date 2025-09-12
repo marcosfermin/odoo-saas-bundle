@@ -47,6 +47,7 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 ## Quick starts
 
 ### Host (non-Docker)
+
 Deploy directly on a Linux host without containers.
 
 1. **Install Odoo and its dependencies**
@@ -71,11 +72,17 @@ Deploy directly on a Linux host without containers.
    ```
 5. **Obtain TLS certificates**
    ```bash
+
    sudo bash scripts/letsencrypt_webroot.sh         # issue
    sudo bash scripts/letsencrypt_webroot.sh renew   # renew
    # OR
    sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
    sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh renew
+
+   sudo bash scripts/letsencrypt_webroot.sh
+   # OR
+   sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+
    ```
 6. **(Optional) Bootstrap a demo tenant**
    ```bash
@@ -95,8 +102,12 @@ bash scripts/letsencrypt_webroot.sh         # issue
 bash scripts/letsencrypt_webroot.sh renew   # renew
 # OR
 export CLOUDFLARE_API_TOKEN=your_token  # see cloudflare.ini.example
+
 bash scripts/letsencrypt_cloudflare_wildcard.sh         # issue
 bash scripts/letsencrypt_cloudflare_wildcard.sh renew   # renew
+
+bash scripts/letsencrypt_cloudflare_wildcard.sh
+
 
 # Optional gevent + worker scaling
 docker compose up -d --build
