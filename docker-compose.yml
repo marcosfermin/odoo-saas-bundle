@@ -50,7 +50,7 @@ services:
       "-c", "/etc/odoo/odoo.conf",
       "--proxy-mode",
       "--http-interface=0.0.0.0",
-      "--db-filter=^%d$"
+      "--db-filter=^%d$$"
     ]
     volumes:
       - ./config/odoo/odoo.conf:/etc/odoo/odoo.conf:ro
