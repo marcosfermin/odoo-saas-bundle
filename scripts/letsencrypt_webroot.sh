@@ -10,14 +10,24 @@ WEBROOT_DIR="$(pwd)/certbot-www"
 
 mkdir -p "$LE_DIR" "$WEBROOT_DIR"
 
+STAGING_ARG=""
+if [[ "$STAGING" -eq 1 ]]; then
+  STAGING_ARG="--staging"
+fi
+
+DOMAIN_ARGS=()
+for d in "${DOMAINS[@]}"; do
+  DOMAIN_ARGS+=("-d" "$d")
+done
+
 docker run --rm \
   -v "$LE_DIR:/etc/letsencrypt" \
   -v "$WEBROOT_DIR:/var/www/certbot" \
   certbot/certbot:latest certonly \
     --webroot -w /var/www/certbot \
     --email "$EMAIL" --agree-tos --no-eff-email \
-    $( [[ $STAGING -eq 1 ]] && echo "--staging" ) \
-    $(for d in "${DOMAINS[@]}"; do printf -- " -d %s" "$d"; done)
+    $STAGING_ARG \
+    "${DOMAIN_ARGS[@]}"
 
 docker compose exec nginx nginx -t
 docker compose exec nginx nginx -s reload
