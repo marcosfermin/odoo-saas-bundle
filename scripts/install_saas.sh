@@ -32,6 +32,12 @@ if [[ ! -d "${ODOO_DIR}" ]]; then
   sudo -u "${ODOO_USER}" git clone --depth=1 --branch "${ODOO_VERSION}" https://github.com/odoo/odoo.git "${ODOO_DIR}"
 fi
 
+# Odoo's requirements pin an old gevent version incompatible with Python 3.10.
+# Remove this pin so our preinstalled gevent wheel is kept.
+sudo -u "${ODOO_USER}" bash -lc "\
+  sed -i '/^gevent==/d' '${ODOO_DIR}/requirements.txt' \
+"
+
 # Python venv
 sudo -u "${ODOO_USER}" python3 -m venv "${ODOO_VENV}"
 
