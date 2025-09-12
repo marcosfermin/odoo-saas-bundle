@@ -49,6 +49,12 @@ bash scripts/letsencrypt_webroot.sh renew   # renew
 export CLOUDFLARE_API_TOKEN=your_cloudflare_token  # see cloudflare.ini.example
 bash scripts/letsencrypt_cloudflare_wildcard.sh         # issue
 bash scripts/letsencrypt_cloudflare_wildcard.sh renew   # renew
+
+bash scripts/letsencrypt_cloudflare_wildcard.sh         # issue
+bash scripts/letsencrypt_cloudflare_wildcard.sh renew   # renew
+
+bash scripts/letsencrypt_cloudflare_wildcard.sh
+
 ```
 
 ## 6) Verify

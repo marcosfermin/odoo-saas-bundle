@@ -30,6 +30,9 @@ sudo nano /opt/odoo-admin/.env
 # replace Docker service upstreams with localhost
 sed -e 's/odoo:8069/127.0.0.1:8069/' -e 's/admin:9090/127.0.0.1:9090/' \
     config/nginx/site.conf | sudo tee /etc/nginx/sites-available/odoo_saas.conf
+
+# upstreams default to localhost
+sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
 sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
 sudo nginx -t && sudo systemctl reload nginx
 ```
@@ -48,6 +51,10 @@ sudo bash scripts/letsencrypt_webroot.sh renew   # renew
 # or Cloudflare wildcard
 sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh
 sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh renew
+sudo bash scripts/letsencrypt_webroot.sh
+# or
+sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+
 ```
 
 ## 7) Verify

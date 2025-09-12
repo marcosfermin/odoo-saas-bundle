@@ -24,6 +24,7 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 - `config/.env.example` – Env template
 - `cloudflare.ini.example` – Cloudflare API token template
 - `config/nginx/*` – Nginx site/snippet (Docker-oriented; replace upstreams with `127.0.0.1` for host installs)
+- `config/nginx/*` – Nginx site/snippet (host & Docker variants; upstreams default to 127.0.0.1)
 - `systemd/*` – Systemd units for Admin + workers  
 - `docker-compose.yml` – Postgres + Odoo + Admin + Redis + Nginx  
 - `docker-compose.override.yml` – gevent longpolling + Odoo workers scaling  
@@ -47,6 +48,7 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 ## Quick starts
 
 ### Host (non-Docker)
+
 Deploy directly on a Linux host without containers.
 
 1. **Install Odoo and its dependencies**
@@ -63,11 +65,16 @@ Deploy directly on a Linux host without containers.
    sudo systemctl enable --now odoo odoo-admin
    sudo systemctl enable --now odoo-admin-worker@1
    ```
+
 4. **Configure Nginx**
    Update the upstream servers in `config/nginx/site.conf` from the Docker service names (`odoo`, `admin`) to `127.0.0.1`, then enable the site:
    ```bash
    sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
    sudo sed -i -e 's/odoo:8069/127.0.0.1:8069/' -e 's/admin:9090/127.0.0.1:9090/' /etc/nginx/sites-available/odoo_saas.conf
+
+4. **Configure Nginx (upstreams default to localhost)**
+   ```bash
+   sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
    sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
    sudo nginx -t && sudo systemctl reload nginx
    ```
@@ -78,6 +85,11 @@ Deploy directly on a Linux host without containers.
    # OR
    sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
    sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh renew
+
+   sudo bash scripts/letsencrypt_webroot.sh
+   # OR
+   sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+
    ```
 6. **(Optional) Bootstrap a demo tenant**
    ```bash
@@ -97,8 +109,17 @@ bash scripts/letsencrypt_webroot.sh         # issue
 bash scripts/letsencrypt_webroot.sh renew   # renew
 # OR
 export CLOUDFLARE_API_TOKEN=your_token  # see cloudflare.ini.example
+
 bash scripts/letsencrypt_cloudflare_wildcard.sh         # issue
 bash scripts/letsencrypt_cloudflare_wildcard.sh renew   # renew
+
+
+bash scripts/letsencrypt_cloudflare_wildcard.sh         # issue
+bash scripts/letsencrypt_cloudflare_wildcard.sh renew   # renew
+
+bash scripts/letsencrypt_cloudflare_wildcard.sh
+
+
 
 # Optional gevent + worker scaling
 docker compose up -d --build
