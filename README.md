@@ -47,6 +47,7 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 ## Quick starts
 
 ### Host (non-Docker)
+
 Deploy directly on a Linux host without containers.
 
 1. **Install Odoo and its dependencies**
@@ -79,6 +80,7 @@ Deploy directly on a Linux host without containers.
    ```bash
    sudo ODOO_USER=odoo ODOO_DIR=/opt/odoo/odoo-16.0 ODOO_VENV=/opt/odoo/venv bash scripts/bootstrap_demo.sh demo
    ```
+=======
 
 ### Docker (recommended)
 
