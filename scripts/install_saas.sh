@@ -13,7 +13,10 @@ CONFIG="/etc/odoo.conf"
 if [[ $EUID -ne 0 ]]; then echo "Run as root"; exit 1; fi
 
 apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get install -y git python3 python3-venv python3-pip postgresql nginx libpq-dev build-essential wkhtmltopdf
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  git python3 python3-venv python3-pip python3-dev \
+  postgresql nginx libpq-dev build-essential wkhtmltopdf \
+  libev-dev libc-ares-dev
 
 # System user and folders
 id -u "${ODOO_USER}" &>/dev/null || adduser --system --quiet --home "${ODOO_HOME}" --group "${ODOO_USER}"
@@ -31,8 +34,21 @@ fi
 
 # Python venv
 sudo -u "${ODOO_USER}" python3 -m venv "${ODOO_VENV}"
-sudo -u "${ODOO_USER}" bash -lc "${ODOO_VENV}/bin/pip install --upgrade pip wheel setuptools"
-sudo -u "${ODOO_USER}" bash -lc "cd '${ODOO_DIR}' && ${ODOO_VENV}/bin/pip install -r requirements.txt"
+
+# Upgrade/pin build tooling to avoid Cython 3 incompatibilities with old extensions
+sudo -u "${ODOO_USER}" bash -lc "\
+  ${ODOO_VENV}/bin/pip install -U 'pip<25' wheel 'setuptools<68' 'Cython<3' \
+"
+
+# Pre-install greenlet and a gevent version that ships wheels for Python 3.10 (no Cython build)
+sudo -u "${ODOO_USER}" bash -lc "\
+  ${ODOO_VENV}/bin/pip install 'greenlet>=2.0.2' 'gevent==22.10.2' \
+"
+
+# Install remaining Odoo requirements; disable build isolation so our toolchain is used if any build occurs
+sudo -u "${ODOO_USER}" bash -lc "\
+  cd '${ODOO_DIR}' && PIP_NO_BUILD_ISOLATION=1 ${ODOO_VENV}/bin/pip install -r requirements.txt \
+"
 
 # Odoo config
 cat > "${CONFIG}" <<EOF
