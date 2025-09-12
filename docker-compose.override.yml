@@ -9,7 +9,7 @@ services:
         "odoo",
         "-c", "/etc/odoo/odoo.conf",
         "--proxy-mode",
-        "--db-filter=^%d$",
+        "--db-filter=^%d$$",
         "--workers=8",
         "--longpolling-port=8072"
       ]
