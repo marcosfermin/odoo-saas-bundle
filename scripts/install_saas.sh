@@ -16,7 +16,8 @@ apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
   git python3 python3-venv python3-pip python3-dev \
   postgresql nginx libpq-dev build-essential wkhtmltopdf \
-  libev-dev libc-ares-dev
+  libev-dev libc-ares-dev libldap2-dev libsasl2-dev \
+  libssl-dev
 
 # System user and folders
 id -u "${ODOO_USER}" &>/dev/null || adduser --system --quiet --home "${ODOO_HOME}" --group "${ODOO_USER}"
