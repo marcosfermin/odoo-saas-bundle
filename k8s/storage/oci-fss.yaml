@@ -1,0 +1,64 @@
+#**Dynamic (if enabled in your tenancy):**
+# Ensure your Kubernetes nodes have network access to the FSS Mount Target.
+# Note: OCI FSS dynamic provisioning may incur additional costs.
+# See: https://www.oracle.com/cloud/storage/file-storage/pricing/
+
+
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: odoo-rwx
+# provisioner: fss.csi.oraclecloud.com
+# parameters:
+#   # Set the right OCIDs for your tenancy/network (examples below are placeholders)
+#   compartmentOcid: ocid1.compartment.oc1..aaaa...xyz
+#   subnetOcid: ocid1.subnet.oc1..aaaa...xyz
+#   # Optional: specify mount target subnet or AD; see OCI FSS CSI docs for more params
+# allowVolumeExpansion: true
+# reclaimPolicy: Retain
+# volumeBindingMode: Immediate
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: odoo-filestore
+#   namespace: odoo-saas
+# spec:
+#   accessModes: ["ReadWriteMany"]
+#   resources:
+#     requests:
+#       storage: 20Gi
+#   storageClassName: odoo-rwx
+
+
+#**Static (using existing Mount Target + Export):**
+# If you prefer to manually create a PV for OCI FSS, use this instead:
+# Replace these with your Mount Target IP/path
+# Ensure your Kubernetes nodes have network access to the FSS Mount Target.
+# Note: OCI FSS may incur additional costs.
+# See: https://www.oracle.com/cloud/storage/file-storage/pricing/ 
+
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: odoo-filestore-pv
+# spec:
+#   capacity:
+#     storage: 20Gi
+#   accessModes: ["ReadWriteMany"]
+#   persistentVolumeReclaimPolicy: Retain
+#   nfs:
+#     server: 10.0.1.25                # Mount Target IP address
+#     path: /odoo-filestore            # Export path
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: odoo-filestore
+#   namespace: odoo-saas
+# spec:
+#   accessModes: ["ReadWriteMany"]
+#   resources:
+#     requests:
+#       storage: 20Gi
+#   volumeName: odoo-filestore-pv

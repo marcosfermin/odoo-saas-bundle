@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: odoo-metrics
+  namespace: odoo-saas
+spec:
+  selector:
+    matchLabels:
+      app: odoo
+  namespaceSelector:
+    matchNames: ["odoo-saas"]
+  endpoints:
+    - port: metrics
+      interval: 30s

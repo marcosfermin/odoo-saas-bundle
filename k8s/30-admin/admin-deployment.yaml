@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: odoo-saas
+  labels: { app: admin }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: admin }
+  template:
+    metadata:
+      labels: { app: admin }
+    spec:
+      serviceAccountName: admin-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: admin
+          image: ghcr.io/yourorg/odoo-admin:latest   # or build & push your admin image
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef: { name: app-secrets }
+            - configMapRef: { name: admin-config }
+          ports:
+            - name: http
+              containerPort: 9090
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+          livenessProbe:
+            httpGet: { path: /login, port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /login, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: admin-state
+              mountPath: /opt/odoo-admin   # persists admin.db, etc.
+      volumes:
+        - name: admin-state
+          persistentVolumeClaim:
+            claimName: admin-state
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: admin-state
+  namespace: odoo-saas
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi

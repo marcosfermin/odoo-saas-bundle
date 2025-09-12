@@ -1,0 +1,20 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: odoo-longpoll-requests
+  namespace: odoo-saas
+spec:
+  scaleTargetRef:
+    name: odoo-longpoll
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 15
+  cooldownPeriod: 120
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local  # <-- adjust to your Prometheus svc
+        metricName: http_requests_longpoll_rate
+        threshold: "5"                          # scale when req/sec > 5
+        query: |
+          sum(rate(nginx_ingress_controller_requests{exported_namespace="odoo-saas", ingress="odoo-saas", path="/longpolling/"}[1m]))

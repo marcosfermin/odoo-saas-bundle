@@ -1,0 +1,22 @@
+# k8s/10-redis/redis-service.yaml
+# Source: https://kubernetes.io/docs/concepts/services-networking/service/
+# This Service exposes the Redis StatefulSet within the cluster.
+# It uses a ClusterIP type, which is the default and makes the service reachable only within the cluster.
+# The service selects pods with the label "app: redis" and forwards traffic to port 6379.
+# This Service is deployed in the "odoo-saas" namespace.
+# Ensure that the Redis StatefulSet is created before this Service to avoid issues with pod selection.
+# Adjust the namespace and labels as needed to fit your deployment.
+# This Service is intended for internal use by other components in the "odoo-saas" namespace.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: odoo-saas
+spec:
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+  selector:
+    app: redis

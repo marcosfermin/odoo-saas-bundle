@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-rq
+  namespace: odoo-saas
+  labels:
+    grafana_dashboard: "1"
+data:
+  rq.json: |
+    {
+      "schemaVersion": 36,
+      "title": "RQ Workers & Queues",
+      "timezone": "browser",
+      "panels": [
+        {
+          "type": "graph",
+          "title": "Queue Length (odoo_admin_jobs)",
+          "targets": [
+            {
+              "expr": "rq_queue_length{queue=\"odoo_admin_jobs\"}",
+              "legendFormat": "pending"
+            }
+          ],
+          "datasource": "Prometheus"
+        },
+        {
+          "type": "graph",
+          "title": "Jobs Processed / sec",
+          "targets": [
+            {
+              "expr": "rate(rq_jobs_processed_total[5m])",
+              "legendFormat": "processed/s"
+            }
+          ],
+          "datasource": "Prometheus"
+        },
+        {
+          "type": "graph",
+          "title": "Jobs Failed / sec",
+          "targets": [
+            {
+              "expr": "rate(rq_jobs_failed_total[5m])",
+              "legendFormat": "failed/s"
+            }
+          ],
+          "datasource": "Prometheus"
+        }
+      ],
+      "templating": { "list": [] },
+      "time": { "from": "now-6h", "to": "now" }
+    }

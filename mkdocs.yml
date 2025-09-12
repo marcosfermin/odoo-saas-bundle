@@ -1,0 +1,40 @@
+site_name: Odoo SaaS Platform
+site_description: Multi-tenant Odoo with Admin Dashboard, Docker/Kubernetes, and S3/KMS
+  backups
+site_url: https://docs.example.com
+theme:
+  name: material
+  features:
+  - navigation.tabs
+  - navigation.sections
+  - content.code.copy
+  - content.tabs.link
+# docs_dir: .
+nav:
+- Overview: index.md
+- Quick Start:
+  - Docker: quickstart/docker.md
+  - Host Install: quickstart/host.md
+  - Kubernetes: quickstart/kubernetes.md
+- Architecture: architecture.md
+- Configuration:
+  - Environment Variables: config/env.md
+  - Nginx & TLS: config/nginx_tls.md
+  - Terraform (S3+KMS): config/terraform.md
+- Operations:
+  - Tenants & Modules: ops/tenants.md
+  - Backups & Restores: ops/backups.md
+  - Jobs & Scaling: ops/jobs_scaling.md
+  - Billing Webhooks: ops/billing.md
+  - Alerts: ops/alerts.md
+- Kubernetes:
+  - Manifests: k8s/manifests.md
+  - Storage (RWX): k8s/storage.md
+  - Autoscaling (KEDA): k8s/keda.md
+  - IRSA (EKS): k8s/irsa.md
+  - Observability: k8s/observability.md
+- Security: security.md
+- Troubleshooting: troubleshooting.md
+- API: api.md
+- Changelog: changelog.md
+- License: license.md

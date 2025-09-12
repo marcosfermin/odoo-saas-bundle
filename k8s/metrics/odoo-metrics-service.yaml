@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: odoo-metrics
+  namespace: odoo-saas
+  labels: { app: odoo }
+spec:
+  selector: { app: odoo }
+  ports:
+    - name: metrics
+      port: 9116
+      targetPort: 9116

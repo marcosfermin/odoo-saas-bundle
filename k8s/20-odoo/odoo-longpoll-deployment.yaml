@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo-longpoll
+  namespace: odoo-saas
+  labels: { app: odoo-longpoll }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: odoo-longpoll }
+  template:
+    metadata:
+      labels: { app: odoo-longpoll }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        fsGroup: 101
+      containers:
+        - name: odoo
+          image: odoo:16.0
+          envFrom:
+            - secretRef: { name: app-secrets }
+            - configMapRef: { name: admin-config }
+          args:
+            - "-c"
+            - "/etc/odoo/odoo.conf"
+            - "--proxy-mode"
+            - "--db-filter=^%d$"
+            - "--workers=6"
+            - "--longpolling-port=8072"
+          command: ["odoo"]
+          ports:
+            - name: longpoll
+              containerPort: 8072
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits:   { cpu: "2",    memory: "2Gi" }
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf
+              subPath: odoo.conf
+              readOnly: true
+            - name: filestore
+              mountPath: /var/lib/odoo
+      volumes:
+        - name: odoo-config
+          configMap:
+            name: odoo-config
+            items:
+              - key: odoo.conf
+                path: odoo.conf
+        - name: filestore
+          persistentVolumeClaim:
+            claimName: odoo-filestore

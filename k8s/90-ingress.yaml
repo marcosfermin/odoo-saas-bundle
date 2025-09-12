@@ -1,0 +1,66 @@
+# Ingress configuration for Odoo SaaS with TLS and basic authentication for admin interface
+# See https://kubernetes.io/docs/concepts/services-networking/ingress
+# See https://github.com/kubernetes/ingress-nginx
+# See https://github.com/jetstack/cert-manager
+# See https://github.com/kubernetes-sigs/external-dns
+# See https://github.com/kubernetes-sigs/external-secrets
+
+# NOTE: The `deploy:` section is honored when using Docker Swarm.
+# With plain docker compose, resource limits under `deploy:` are ignored.
+# For non-Swarm, keep `mem_limit`/`cpus` under each service if you need hard limits.
+
+# OPTIONAL: Run Postgres inside the cluster
+# If you don’t use RDS/external Postgres, apply the two files below, then update app-secrets.yaml to point PG_HOST to postgres.odoo-saas.svc.cluster.local and set the same PG_USER/PASSWORD.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: odoo-saas
+  namespace: odoo-saas
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+
+    # Admin basic auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: admin-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Restricted"
+
+    # Proxy headers
+    nginx.ingress.kubernetes.io/proxy-body-size: "64m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+spec:
+  tls:
+    - hosts:
+        - odoo.example.com
+        - admin.odoo.example.com
+        - "*.odoo.example.com"
+      secretName: odoo-saas-tls
+  rules:
+    - host: odoo.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo
+                port:
+                  number: 8069
+          - path: /longpolling/
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo
+                port:
+                  number: 8072
+    - host: admin.odoo.example.com
+      http:
+        paths:
+          - path: /admin/
+            pathType: Prefix
+            backend:
+              service:
+                name: admin
+                port:
+                  number: 9090

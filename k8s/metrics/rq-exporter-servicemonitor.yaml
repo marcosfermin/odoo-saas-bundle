@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rq-exporter
+  namespace: odoo-saas
+spec:
+  selector:
+    matchLabels:
+      app: rq-exporter
+  namespaceSelector:
+    matchNames: ["odoo-saas"]
+  endpoints:
+    - port: http
+      interval: 30s

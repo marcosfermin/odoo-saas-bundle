@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rq-exporter
+  namespace: odoo-saas
+  labels: { app: rq-exporter }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: rq-exporter }
+  template:
+    metadata:
+      labels: { app: rq-exporter }
+    spec:
+      containers:
+        - name: exporter
+          image: mdawar/rq-exporter:latest   # any RQ exporter compatible image
+          envFrom:
+            - configMapRef: { name: admin-config }
+            - secretRef: { name: app-secrets }
+          env:
+            - name: REDIS_URL
+              valueFrom: { configMapKeyRef: { name: admin-config, key: REDIS_URL } }
+          ports:
+            - name: http
+              containerPort: 9726
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rq-exporter
+  namespace: odoo-saas
+  labels: { app: rq-exporter }
+spec:
+  selector: { app: rq-exporter }
+  ports:
+    - name: http
+      port: 9726
+      targetPort: 9726

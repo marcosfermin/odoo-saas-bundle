@@ -1,0 +1,55 @@
+# k8s/10-redis/redis-statefulset.yaml
+# Source: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+# This StatefulSet deploys a single Redis instance with persistent storage.
+# Adjust resource requests/limits and storage size as needed.
+# Ensure that your cluster has a default StorageClass for the PersistentVolumeClaim to be bound.
+# The Redis container runs as a non-root user for improved security.
+# This StatefulSet is deployed in the "odoo-saas" namespace.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: odoo-saas
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:7
+          args: ["redis-server","--save","60","1000","--appendonly","yes"]
+          ports:
+            - containerPort: 6379
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+          livenessProbe:
+            tcpSocket: { port: 6379 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi

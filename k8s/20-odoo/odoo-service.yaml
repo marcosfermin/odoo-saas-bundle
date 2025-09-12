@@ -1,0 +1,23 @@
+# Odoo Service
+# Exposes the Odoo application within the cluster
+# Accessible via ClusterIP on ports 8069 (HTTP) and 8072 (Longpolling)
+# Reference: https://www.odoo.com/documentation/15.0/developer/howtos/backend.html#deployment
+# Source: https://github.com/OCA/odoo-docker
+# Source: https://github.com/OCA/odoo-docker/blob/master/kubernetes/odoo-service.yaml
+# Source: https://github.com/OCA/odoo-docker/blob/master/kubernetes/odoo-service-longpoll.yaml
+# Source: https://github.com/OCA/odoo-docker/blob/master/kubernetes/odoo-deployment.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: odoo
+  namespace: odoo-saas
+spec:
+  selector: { app: odoo }
+  ports:
+    - name: http
+      port: 8069
+      targetPort: 8069
+    - name: longpoll
+      port: 8072
+      targetPort: 8072

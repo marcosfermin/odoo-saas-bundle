@@ -1,0 +1,16 @@
+[Unit]
+Description=Odoo SaaS Admin Dashboard (Flask)
+After=network.target redis-server.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/odoo-admin
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=/opt/odoo-admin/.env
+ExecStart=/opt/odoo-admin/venv/bin/python /opt/odoo-admin/admin_dashboard.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

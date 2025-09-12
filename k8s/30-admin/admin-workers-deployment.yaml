@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-workers
+  namespace: odoo-saas
+  labels: { app: admin-workers }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: admin-workers }
+  template:
+    metadata:
+      labels: { app: admin-workers }
+    spec:
+      serviceAccountName: admin-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      containers:
+        - name: worker
+          image: ghcr.io/yourorg/odoo-admin:latest  # same image as admin
+          command: ["rq","worker","-u","$(REDIS_URL)","odoo_admin_jobs"]
+          envFrom:
+            - secretRef: { name: app-secrets }
+            - configMapRef: { name: admin-config }
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+          livenessProbe:
+            exec:
+              command: ["sh","-lc","rq info -u $(REDIS_URL) | grep -q odoo_admin_jobs"]
+            initialDelaySeconds: 20
+            periodSeconds: 30

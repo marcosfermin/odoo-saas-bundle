@@ -1,0 +1,32 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: admin-workers-queue
+  namespace: odoo-saas
+spec:
+  scaleTargetRef:
+    name: admin-workers           # matches k8s/30-admin/admin-workers-deployment.yaml
+  pollingInterval: 15             # seconds between checks
+  cooldownPeriod: 120             # scale down delay
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: redis
+      metadata:
+        address: redis.odoo-saas.svc.cluster.local:6379
+        listName: rq:queue:odoo_admin_jobs
+        listLength: "5"           # scale up when > 5 pending jobs
+      # authenticationRef:        # Uncomment if using Redis AUTH
+      #   name: redis-auth
+---
+# Optional TriggerAuthentication if your Redis requires a password:
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: redis-auth
+  namespace: odoo-saas
+spec:
+  secretTargetRef:
+    - parameter: password
+      name: redis-secret
+      key: password

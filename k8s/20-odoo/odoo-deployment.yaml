@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo
+  namespace: odoo-saas
+  labels: { app: odoo }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: odoo }
+  template:
+    metadata:
+      labels: { app: odoo }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        fsGroup: 101
+      containers:
+        - name: odoo
+          image: odoo:16.0
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef: { name: app-secrets }
+            - configMapRef: { name: admin-config }
+          env:
+            - name: PG_HOST
+              valueFrom: { secretKeyRef: { name: app-secrets, key: PG_HOST } }
+            - name: PG_PORT
+              valueFrom: { secretKeyRef: { name: app-secrets, key: PG_PORT } }
+            - name: PG_USER
+              valueFrom: { secretKeyRef: { name: app-secrets, key: PG_USER } }
+            - name: PG_PASSWORD
+              valueFrom: { secretKeyRef: { name: app-secrets, key: PG_PASSWORD } }
+          command: ["odoo"]
+          args:
+            - "-c"
+            - "/etc/odoo/odoo.conf"
+            - "--proxy-mode"
+            - "--db-filter=^%d$"
+            - "--workers=6"
+            - "--longpolling-port=8072"
+          ports:
+            - name: http
+              containerPort: 8069
+            - name: longpoll
+              containerPort: 8072
+          resources:
+            requests: { cpu: "500m", memory: "1Gi" }
+            limits:   { cpu: "2",    memory: "4Gi" }
+          livenessProbe:
+            httpGet:
+              path: /web
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /web
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf
+              subPath: odoo.conf
+              readOnly: true
+            - name: filestore
+              mountPath: /var/lib/odoo
+            - name: extra-addons
+              mountPath: /mnt/extra-addons
+              readOnly: true
+        - name: odoo-exporter
+          image: ghcr.io/anyscale/odoo-prometheus-exporter:latest
+          args: ["--odoo-url=http://localhost:8069", "--interval=15"]
+          ports:
+            - name: metrics
+              containerPort: 9116
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+      volumes:
+        - name: odoo-config
+          configMap:
+            name: odoo-config
+            items:
+              - key: odoo.conf
+                path: odoo.conf
+        - name: extra-addons
+          emptyDir: {}
+      affinity: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: odoo-filestore
+  namespace: odoo-saas
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo
+  namespace: odoo-saas
+spec:
+  template:
+    spec:
+      volumes:
+        - name: filestore
+          persistentVolumeClaim:
+            claimName: odoo-filestore

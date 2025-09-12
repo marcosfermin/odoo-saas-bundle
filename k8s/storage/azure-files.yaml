@@ -1,0 +1,25 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: odoo-rwx
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  skuName: Standard_LRS         # or Premium_LRS
+  protocol: nfs                 # NFS for POSIX semantics (AKS supports this in many regions)
+mountOptions:
+  - nolock
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: odoo-filestore
+  namespace: odoo-saas
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: odoo-rwx

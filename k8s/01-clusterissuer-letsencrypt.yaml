@@ -1,0 +1,21 @@
+# Source: https://cert-manager.io/docs/configuration/acme/#configuring-a-clusterissuer
+# Make sure to replace the email address with your own.
+# You can use the staging server for testing, but remember to switch to the production server for
+# real certificates.
+# Also, ensure that your Ingress controller is properly set up to handle the HTTP-01 challenge.
+# This example assumes you are using the nginx Ingress controller.  See the documentation for your
+# Ingress controller for more information.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    email: admin@odoo.example.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: le-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx

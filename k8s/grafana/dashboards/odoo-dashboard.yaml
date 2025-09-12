@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-odoo
+  namespace: odoo-saas
+  labels:
+    grafana_dashboard: "1"
+data:
+  odoo.json: |
+    {
+      "schemaVersion": 36,
+      "title": "Odoo Overview",
+      "timezone": "browser",
+      "panels": [
+        {
+          "type": "graph",
+          "title": "HTTP Requests / sec",
+          "targets": [
+            {
+              "expr": "sum(rate(nginx_ingress_controller_requests{ingress=\"odoo-saas\", exported_namespace=\"odoo-saas\"}[5m]))",
+              "legendFormat": "req/s"
+            }
+          ],
+          "datasource": "Prometheus"
+        },
+        {
+          "type": "graph",
+          "title": "Longpoll Requests / sec",
+          "targets": [
+            {
+              "expr": "sum(rate(nginx_ingress_controller_requests{ingress=\"odoo-saas\", path=\"/longpolling/\"}[5m]))",
+              "legendFormat": "longpoll req/s"
+            }
+          ],
+          "datasource": "Prometheus"
+        },
+        {
+          "type": "graph",
+          "title": "Pod CPU (millicores)",
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"odoo-saas\", pod=~\"odoo.*\"}[5m])) * 1000",
+              "legendFormat": "odoo cpu mcores"
+            }
+          ],
+          "datasource": "Prometheus"
+        },
+        {
+          "type": "graph",
+          "title": "Pod Memory (MiB)",
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"odoo-saas\", pod=~\"odoo.*\"}) / 1024 / 1024",
+              "legendFormat": "odoo mem MiB"
+            }
+          ],
+          "datasource": "Prometheus"
+        }
+      ],
+      "templating": { "list": [] },
+      "time": { "from": "now-6h", "to": "now" }
+    }

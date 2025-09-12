@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-config
+  namespace: odoo-saas
+data:
+  DOMAIN: "odoo.example.com"
+  PORT: "9090"
+  REDIS_URL: "redis://redis.odoo-saas.svc.cluster.local:6379/0"
+  S3_PREFIX: "tenants"
+  S3_SSE: "aws:kms"
+  S3_LIFECYCLE_DAYS: "30"

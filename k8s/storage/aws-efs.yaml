@@ -1,0 +1,30 @@
+# StorageClass for dynamic EFS Access Points
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: odoo-rwx
+provisioner: efs.csi.aws.com
+parameters:
+  # If you want to pin to a specific FS, set fileSystemId; otherwise use a CSI Access Point policy.
+  fileSystemId: fs-1234567890abcdef
+  provisioningMode: efs-ap
+  directoryPerms: "0770"
+mountOptions:
+  - nolock
+  - nfsvers=4.1
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+---
+# Namespace PVC that Odoo uses
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: odoo-filestore
+  namespace: odoo-saas
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: odoo-rwx
