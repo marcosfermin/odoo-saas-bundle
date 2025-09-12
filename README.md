@@ -17,12 +17,13 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 
 ## What’s here
 
-- `scripts/install_saas.sh` – Full Odoo multi-tenant (host) installer  
-- `scripts/install_admin.sh` – Admin Dashboard (Flask) host installer  
-- `scripts/bootstrap_demo.sh` – Create a demo tenant DB + modules  
-- `app/admin_dashboard.py` – Complete Admin app  
-- `config/.env.example` – Env template  
-- `config/nginx/*` – Nginx site/snippet (host & Docker variants)  
+- `scripts/install_saas.sh` – Full Odoo multi-tenant (host) installer (installs OpenLDAP/SASL/SSL build deps)
+- `scripts/install_admin.sh` – Admin Dashboard (Flask) host installer
+- `scripts/bootstrap_demo.sh` – Create a demo tenant DB + modules
+- `app/admin_dashboard.py` – Complete Admin app
+- `config/.env.example` – Env template
+- `cloudflare.ini.example` – Cloudflare API token template
+- `config/nginx/*` – Nginx site/snippet (host & Docker variants; upstreams default to 127.0.0.1)
 - `systemd/*` – Systemd units for Admin + workers  
 - `docker-compose.yml` – Postgres + Odoo + Admin + Redis + Nginx  
 - `docker-compose.override.yml` – gevent longpolling + Odoo workers scaling  
@@ -46,16 +47,38 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 ## Quick starts
 
 ### Host (non-Docker)
-```bash
-sudo bash scripts/install_saas.sh
-sudo bash scripts/install_admin.sh
-sudo nano /opt/odoo-admin/.env   # fill Stripe/Paddle/S3/alerts/etc.
-sudo systemctl restart odoo-admin odoo-admin-worker@1
-sudo ODOO_USER=odoo ODOO_DIR=/opt/odoo/odoo-16.0 ODOO_VENV=/opt/odoo/venv bash scripts/bootstrap_demo.sh demo
-sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
-sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
-sudo nginx -t && sudo systemctl reload nginx
-````
+Deploy directly on a Linux host without containers.
+
+1. **Install Odoo and its dependencies**
+   ```bash
+   sudo bash scripts/install_saas.sh
+   ```
+2. **Install the Admin Dashboard and create its environment file**
+   ```bash
+   sudo bash scripts/install_admin.sh
+   sudo nano /opt/odoo-admin/.env   # fill Stripe/Paddle/S3/alerts/etc.
+   ```
+3. **Enable and start services**
+   ```bash
+   sudo systemctl enable --now odoo odoo-admin
+   sudo systemctl enable --now odoo-admin-worker@1
+   ```
+4. **Configure Nginx (upstreams default to localhost)**
+   ```bash
+   sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
+   sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+5. **Obtain TLS certificates**
+   ```bash
+   sudo bash scripts/letsencrypt_webroot.sh
+   # OR
+   sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+   ```
+6. **(Optional) Bootstrap a demo tenant**
+   ```bash
+   sudo ODOO_USER=odoo ODOO_DIR=/opt/odoo/odoo-16.0 ODOO_VENV=/opt/odoo/venv bash scripts/bootstrap_demo.sh demo
+   ```
 
 ### Docker (recommended)
 
@@ -68,7 +91,8 @@ docker compose up -d --build
 # TLS (choose one)
 bash scripts/letsencrypt_webroot.sh
 # OR
-export CLOUDFLARE_API_TOKEN=your_token && bash scripts/letsencrypt_cloudflare_wildcard.sh
+export CLOUDFLARE_API_TOKEN=your_token  # see cloudflare.ini.example
+bash scripts/letsencrypt_cloudflare_wildcard.sh
 
 # Optional gevent + worker scaling
 docker compose up -d --build

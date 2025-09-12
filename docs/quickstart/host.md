@@ -16,7 +16,7 @@ sudo apt update && sudo apt install -y   python3-venv python3-pip git postgresql
 
 ## 2) Install Odoo
 ```bash
-sudo bash scripts/install_saas.sh
+sudo bash scripts/install_saas.sh   # installs OpenLDAP/SASL/SSL build deps
 ```
 
 ## 3) Install Admin Dashboard
@@ -27,6 +27,7 @@ sudo nano /opt/odoo-admin/.env
 
 ## 4) Nginx
 ```bash
+# upstreams default to localhost
 sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
 sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
 sudo nginx -t && sudo systemctl reload nginx
@@ -42,7 +43,7 @@ sudo systemctl enable --now odoo-admin-worker@1
 ```bash
 sudo bash scripts/letsencrypt_webroot.sh
 # or
-sudo bash scripts/letsencrypt_cloudflare_wildcard.sh
+sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
 ```
 
 ## 7) Verify
