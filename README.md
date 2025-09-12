@@ -47,6 +47,7 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 ## Quick starts
 
 ### Host (non-Docker)
+
 Deploy directly on a Linux host without containers.
 
 1. **Install Odoo and its dependencies**
