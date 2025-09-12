@@ -515,6 +515,29 @@ kubectl apply -f k8s/90-ingress.yaml
    - Change `BOOTSTRAP_PASSWORD` and rotate `SECRET_KEY`
    - Remove any static cloud keys in favor of IRSA/Workload Identity
    - Lock down Nginx Admin Basic Auth (if enabled)
+ 
+## Ubuntu 24.04 Verification
+
+The bundle has been sanity‑checked on **Ubuntu 24.04 LTS**. Basic script syntax was
+validated (`bash -n scripts/*.sh`). To verify your environment and the
+integrations, run:
+
+```bash
+# Docker Compose configuration
+docker compose config
+
+# Kubernetes manifests
+kubectl apply -f k8s/ --dry-run=client -R
+
+# Terraform module
+cd terraform
+terraform init
+terraform validate
+```
+
+Ensure Docker, `kubectl` and Terraform are installed before executing these
+checks.
+
 ## Documentation
 
 The full documentation is included under **`/docs`** (MkDocs).
