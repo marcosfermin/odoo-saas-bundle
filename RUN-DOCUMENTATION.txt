@@ -1,0 +1,12 @@
+Run the docs
+
+From the project root:
+
+(venv) $ pip install mkdocs mkdocs-material
+(venv) $ mkdocs serve
+
+
+You should see:
+
+INFO    -  Building documentation...
+INFO    -  Serving on http://127.0.0.1:8000/
