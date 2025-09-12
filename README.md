@@ -17,18 +17,19 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 
 ## What’s here
 
-- `scripts/install_saas.sh` – Full Odoo multi-tenant (host) installer  
-- `scripts/install_admin.sh` – Admin Dashboard (Flask) host installer  
-- `scripts/bootstrap_demo.sh` – Create a demo tenant DB + modules  
-- `app/admin_dashboard.py` – Complete Admin app  
-- `config/.env.example` – Env template  
-- `config/nginx/*` – Nginx site/snippet (host & Docker variants)  
+- `scripts/install_saas.sh` – Full Odoo multi-tenant (host) installer (installs OpenLDAP/SASL/SSL build deps)
+- `scripts/install_admin.sh` – Admin Dashboard (Flask) host installer
+- `scripts/bootstrap_demo.sh` – Create a demo tenant DB + modules
+- `app/admin_dashboard.py` – Complete Admin app
+- `config/.env.example` – Env template
+- `cloudflare.ini.example` – Cloudflare API token template
+- `config/nginx/*` – Nginx site/snippet (Docker-oriented; replace upstreams with `127.0.0.1` for host installs)
 - `systemd/*` – Systemd units for Admin + workers  
 - `docker-compose.yml` – Postgres + Odoo + Admin + Redis + Nginx  
 - `docker-compose.override.yml` – gevent longpolling + Odoo workers scaling  
 - `docker-compose.prod.yml` – resource limits, logs, read-only FS where possible  
-- `scripts/letsencrypt_webroot.sh` – HTTP-01 (non-wildcard) LE automation  
-- `scripts/letsencrypt_cloudflare_wildcard.sh` – DNS-01 wildcard (Cloudflare)  
+- `scripts/letsencrypt_webroot.sh` – HTTP-01 (non-wildcard) LE issue/renew
+- `scripts/letsencrypt_cloudflare_wildcard.sh` – DNS-01 wildcard (Cloudflare) issue/renew
 - `terraform/odoo_s3_kms_lifecycle.tf` – **Terraform** for S3 + KMS + lifecycle  
 - **Kubernetes** in `k8s/`:
   - `00-namespace.yaml`, `01-clusterissuer-letsencrypt.yaml`
@@ -46,16 +47,42 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 ## Quick starts
 
 ### Host (non-Docker)
-```bash
-sudo bash scripts/install_saas.sh
-sudo bash scripts/install_admin.sh
-sudo nano /opt/odoo-admin/.env   # fill Stripe/Paddle/S3/alerts/etc.
-sudo systemctl restart odoo-admin odoo-admin-worker@1
-sudo ODOO_USER=odoo ODOO_DIR=/opt/odoo/odoo-16.0 ODOO_VENV=/opt/odoo/venv bash scripts/bootstrap_demo.sh demo
-sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
-sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
-sudo nginx -t && sudo systemctl reload nginx
-````
+Deploy directly on a Linux host without containers.
+
+1. **Install Odoo and its dependencies**
+   ```bash
+   sudo bash scripts/install_saas.sh
+   ```
+2. **Install the Admin Dashboard and create its environment file**
+   ```bash
+   sudo bash scripts/install_admin.sh
+   sudo nano /opt/odoo-admin/.env   # fill Stripe/Paddle/S3/alerts/etc.
+   ```
+3. **Enable and start services**
+   ```bash
+   sudo systemctl enable --now odoo odoo-admin
+   sudo systemctl enable --now odoo-admin-worker@1
+   ```
+4. **Configure Nginx**
+   Update the upstream servers in `config/nginx/site.conf` from the Docker service names (`odoo`, `admin`) to `127.0.0.1`, then enable the site:
+   ```bash
+   sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
+   sudo sed -i -e 's/odoo:8069/127.0.0.1:8069/' -e 's/admin:9090/127.0.0.1:9090/' /etc/nginx/sites-available/odoo_saas.conf
+   sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+5. **Obtain TLS certificates**
+   ```bash
+   sudo bash scripts/letsencrypt_webroot.sh         # issue
+   sudo bash scripts/letsencrypt_webroot.sh renew   # renew
+   # OR
+   sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+   sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh renew
+   ```
+6. **(Optional) Bootstrap a demo tenant**
+   ```bash
+   sudo ODOO_USER=odoo ODOO_DIR=/opt/odoo/odoo-16.0 ODOO_VENV=/opt/odoo/venv bash scripts/bootstrap_demo.sh demo
+   ```
 
 ### Docker (recommended)
 
@@ -66,9 +93,12 @@ docker compose run --rm nginx sh -c 'apk add --no-cache apache2-utils && htpassw
 docker compose up -d --build
 
 # TLS (choose one)
-bash scripts/letsencrypt_webroot.sh
+bash scripts/letsencrypt_webroot.sh         # issue
+bash scripts/letsencrypt_webroot.sh renew   # renew
 # OR
-export CLOUDFLARE_API_TOKEN=your_token && bash scripts/letsencrypt_cloudflare_wildcard.sh
+export CLOUDFLARE_API_TOKEN=your_token  # see cloudflare.ini.example
+bash scripts/letsencrypt_cloudflare_wildcard.sh         # issue
+bash scripts/letsencrypt_cloudflare_wildcard.sh renew   # renew
 
 # Optional gevent + worker scaling
 docker compose up -d --build
@@ -494,7 +524,7 @@ kubectl apply -f k8s/90-ingress.yaml
    - `admin.odoo.example.com` → same
 
 2. **TLS**
-   - Docker: run `scripts/letsencrypt_webroot.sh` or the Cloudflare DNS-01 script
+   - Docker: run `scripts/letsencrypt_webroot.sh [renew]` or `scripts/letsencrypt_cloudflare_wildcard.sh [renew]`
    - K8s: cert-manager + `k8s/01-clusterissuer-letsencrypt.yaml`
 
 3. **Billing Webhooks**

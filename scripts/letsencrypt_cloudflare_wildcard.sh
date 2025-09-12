@@ -19,15 +19,23 @@ if [[ "$STAGING" -eq 1 ]]; then
   STAGING_ARG="--staging"
 fi
 
-docker run --rm \
-  -v "$LE_DIR:/etc/letsencrypt" \
-  -v "$CF_CREDS:/cloudflare.ini" \
-  certbot/dns-cloudflare:latest certonly \
-    --dns-cloudflare \
-    --dns-cloudflare-credentials /cloudflare.ini \
-    --email "$EMAIL" --agree-tos --no-eff-email \
-    $STAGING_ARG \
-    -d "$DOMAIN" -d "*.$DOMAIN"
+CMD=${1:-issue}
+if [[ "$CMD" == "renew" ]]; then
+  docker run --rm \
+    -v "$LE_DIR:/etc/letsencrypt" \
+    -v "$CF_CREDS:/cloudflare.ini" \
+    certbot/dns-cloudflare:latest renew --quiet
+else
+  docker run --rm \
+    -v "$LE_DIR:/etc/letsencrypt" \
+    -v "$CF_CREDS:/cloudflare.ini" \
+    certbot/dns-cloudflare:latest certonly \
+      --dns-cloudflare \
+      --dns-cloudflare-credentials /cloudflare.ini \
+      --email "$EMAIL" --agree-tos --no-eff-email \
+      $STAGING_ARG \
+      -d "$DOMAIN" -d "*.$DOMAIN"
+fi
 
 docker compose exec nginx nginx -t
 docker compose exec nginx nginx -s reload

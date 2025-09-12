@@ -41,12 +41,14 @@ docker compose up -d --scale admin_workers=5
 ## 5) TLS (Let's Encrypt)
 **HTTP-01 (webroot)**:
 ```bash
-bash scripts/letsencrypt_webroot.sh
+bash scripts/letsencrypt_webroot.sh         # issue
+bash scripts/letsencrypt_webroot.sh renew   # renew
 ```
 **DNS-01 (Cloudflare wildcard)**:
 ```bash
-export CLOUDFLARE_API_TOKEN=your_cloudflare_token
-bash scripts/letsencrypt_cloudflare_wildcard.sh
+export CLOUDFLARE_API_TOKEN=your_cloudflare_token  # see cloudflare.ini.example
+bash scripts/letsencrypt_cloudflare_wildcard.sh         # issue
+bash scripts/letsencrypt_cloudflare_wildcard.sh renew   # renew
 ```
 
 ## 6) Verify
