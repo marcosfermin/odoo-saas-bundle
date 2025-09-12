@@ -20,14 +20,22 @@ for d in "${DOMAINS[@]}"; do
   DOMAIN_ARGS+=("-d" "$d")
 done
 
-docker run --rm \
-  -v "$LE_DIR:/etc/letsencrypt" \
-  -v "$WEBROOT_DIR:/var/www/certbot" \
-  certbot/certbot:latest certonly \
-    --webroot -w /var/www/certbot \
-    --email "$EMAIL" --agree-tos --no-eff-email \
-    $STAGING_ARG \
-    "${DOMAIN_ARGS[@]}"
+CMD=${1:-issue}
+if [[ "$CMD" == "renew" ]]; then
+  docker run --rm \
+    -v "$LE_DIR:/etc/letsencrypt" \
+    -v "$WEBROOT_DIR:/var/www/certbot" \
+    certbot/certbot:latest renew --quiet
+else
+  docker run --rm \
+    -v "$LE_DIR:/etc/letsencrypt" \
+    -v "$WEBROOT_DIR:/var/www/certbot" \
+    certbot/certbot:latest certonly \
+      --webroot -w /var/www/certbot \
+      --email "$EMAIL" --agree-tos --no-eff-email \
+      $STAGING_ARG \
+      "${DOMAIN_ARGS[@]}"
+fi
 
 docker compose exec nginx nginx -t
 docker compose exec nginx nginx -s reload

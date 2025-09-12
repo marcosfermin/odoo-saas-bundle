@@ -41,9 +41,17 @@ sudo systemctl enable --now odoo-admin-worker@1
 
 ## 6) TLS Certificates
 ```bash
+# Webroot
+sudo bash scripts/letsencrypt_webroot.sh         # issue
+sudo bash scripts/letsencrypt_webroot.sh renew   # renew
+# or Cloudflare wildcard
+sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh
+sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh renew
+
 sudo bash scripts/letsencrypt_webroot.sh
 # or
 sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+
 ```
 
 ## 7) Verify

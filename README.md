@@ -28,8 +28,8 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 - `docker-compose.yml` – Postgres + Odoo + Admin + Redis + Nginx  
 - `docker-compose.override.yml` – gevent longpolling + Odoo workers scaling  
 - `docker-compose.prod.yml` – resource limits, logs, read-only FS where possible  
-- `scripts/letsencrypt_webroot.sh` – HTTP-01 (non-wildcard) LE automation  
-- `scripts/letsencrypt_cloudflare_wildcard.sh` – DNS-01 wildcard (Cloudflare)  
+- `scripts/letsencrypt_webroot.sh` – HTTP-01 (non-wildcard) LE issue/renew
+- `scripts/letsencrypt_cloudflare_wildcard.sh` – DNS-01 wildcard (Cloudflare) issue/renew
 - `terraform/odoo_s3_kms_lifecycle.tf` – **Terraform** for S3 + KMS + lifecycle  
 - **Kubernetes** in `k8s/`:
   - `00-namespace.yaml`, `01-clusterissuer-letsencrypt.yaml`
@@ -72,9 +72,17 @@ Deploy directly on a Linux host without containers.
    ```
 5. **Obtain TLS certificates**
    ```bash
+
+   sudo bash scripts/letsencrypt_webroot.sh         # issue
+   sudo bash scripts/letsencrypt_webroot.sh renew   # renew
+   # OR
+   sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+   sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh renew
+
    sudo bash scripts/letsencrypt_webroot.sh
    # OR
    sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+
    ```
 6. **(Optional) Bootstrap a demo tenant**
    ```bash
@@ -90,10 +98,16 @@ docker compose run --rm nginx sh -c 'apk add --no-cache apache2-utils && htpassw
 docker compose up -d --build
 
 # TLS (choose one)
-bash scripts/letsencrypt_webroot.sh
+bash scripts/letsencrypt_webroot.sh         # issue
+bash scripts/letsencrypt_webroot.sh renew   # renew
 # OR
 export CLOUDFLARE_API_TOKEN=your_token  # see cloudflare.ini.example
+
+bash scripts/letsencrypt_cloudflare_wildcard.sh         # issue
+bash scripts/letsencrypt_cloudflare_wildcard.sh renew   # renew
+
 bash scripts/letsencrypt_cloudflare_wildcard.sh
+
 
 # Optional gevent + worker scaling
 docker compose up -d --build
@@ -519,7 +533,7 @@ kubectl apply -f k8s/90-ingress.yaml
    - `admin.odoo.example.com` → same
 
 2. **TLS**
-   - Docker: run `scripts/letsencrypt_webroot.sh` or the Cloudflare DNS-01 script
+   - Docker: run `scripts/letsencrypt_webroot.sh [renew]` or `scripts/letsencrypt_cloudflare_wildcard.sh [renew]`
    - K8s: cert-manager + `k8s/01-clusterissuer-letsencrypt.yaml`
 
 3. **Billing Webhooks**
