@@ -80,7 +80,6 @@ Deploy directly on a Linux host without containers.
    ```bash
    sudo ODOO_USER=odoo ODOO_DIR=/opt/odoo/odoo-16.0 ODOO_VENV=/opt/odoo/venv bash scripts/bootstrap_demo.sh demo
    ```
-=======
 
 ### Docker (recommended)
 

@@ -17,7 +17,9 @@ WORKER_COUNT="${WORKER_COUNT:-3}"
 if [[ $EUID -ne 0 ]]; then echo "Run as root"; exit 1; fi
 
 apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv python3-pip git acl redis-server apache2-utils
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  python3-venv python3-pip python3-dev build-essential \
+  git acl redis-server apache2-utils libffi-dev libssl-dev
 
 mkdir -p "${ADMIN_DIR}"
 python3 -m venv "${VENV}"
@@ -95,7 +97,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/odoo-admin
 EnvironmentFile=/opt/odoo-admin/.env
-ExecStart=/opt/odoo-admin/venv/bin/rq worker -u ${REDIS_URL} odoo_admin_jobs
+ExecStart=/bin/bash -lc '/opt/odoo-admin/venv/bin/rq worker -u ${REDIS_URL} odoo_admin_jobs'
 Restart=always
 RestartSec=5
 
