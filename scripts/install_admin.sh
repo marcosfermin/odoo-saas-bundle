@@ -119,10 +119,10 @@ fi
 
 systemctl daemon-reload
 systemctl enable --now redis-server odoo-admin
-for i in $(seq 1 ${WORKER_COUNT}); do
-  systemctl enable --now odoo-admin-worker@${i}
+for i in $(seq 1 "${WORKER_COUNT}"); do
+  systemctl enable --now odoo-admin-worker@"${i}"
 done
 
-setfacl -m u:root:r /opt/${ODOO_USER}/logs/odoo.log || true
+setfacl -m u:root:r /opt/"${ODOO_USER}"/logs/odoo.log || true
 
 echo "Admin installed. Edit ${ADMIN_DIR}/.env and restart: systemctl restart odoo-admin"
