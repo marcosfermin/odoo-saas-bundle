@@ -45,7 +45,7 @@ bash scripts/letsencrypt_webroot.sh
 ```
 **DNS-01 (Cloudflare wildcard)**:
 ```bash
-export CLOUDFLARE_API_TOKEN=your_cloudflare_token
+export CLOUDFLARE_API_TOKEN=your_cloudflare_token  # see cloudflare.ini.example
 bash scripts/letsencrypt_cloudflare_wildcard.sh
 ```
 
