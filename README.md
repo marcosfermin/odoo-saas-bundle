@@ -522,9 +522,9 @@ The full documentation is included under **`/docs`** (MkDocs).
 Serve locally:
 ```bash
 pip install mkdocs mkdocs-material
-mkdocs -f docs/mkdocs.yml serve
+mkdocs serve
 ```
 Build static site:
 ```bash
-mkdocs -f docs/mkdocs.yml build
+mkdocs build
 ```
