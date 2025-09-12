@@ -47,21 +47,40 @@ A production-ready multi-tenant Odoo deployment with an Admin Dashboard for:
 ## Quick starts
 
 ### Host (non-Docker)
-```bash
-sudo bash scripts/install_saas.sh
-sudo bash scripts/install_admin.sh
-sudo nano /opt/odoo-admin/.env   # fill Stripe/Paddle/S3/alerts/etc.
-sudo systemctl restart odoo-admin odoo-admin-worker@1
-sudo ODOO_USER=odoo ODOO_DIR=/opt/odoo/odoo-16.0 ODOO_VENV=/opt/odoo/venv bash scripts/bootstrap_demo.sh demo
-# Nginx upstreams default to localhost
-sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
-sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
-sudo nginx -t && sudo systemctl reload nginx
-# TLS (choose one)
-sudo bash scripts/letsencrypt_webroot.sh
-# OR
-sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
-````
+
+Deploy directly on a Linux host without containers.
+
+1. **Install Odoo and its dependencies**
+   ```bash
+   sudo bash scripts/install_saas.sh
+   ```
+2. **Install the Admin Dashboard and create its environment file**
+   ```bash
+   sudo bash scripts/install_admin.sh
+   sudo nano /opt/odoo-admin/.env   # fill Stripe/Paddle/S3/alerts/etc.
+   ```
+3. **Enable and start services**
+   ```bash
+   sudo systemctl enable --now odoo odoo-admin
+   sudo systemctl enable --now odoo-admin-worker@1
+   ```
+4. **Configure Nginx (upstreams default to localhost)**
+   ```bash
+   sudo cp config/nginx/site.conf /etc/nginx/sites-available/odoo_saas.conf
+   sudo ln -sf /etc/nginx/sites-available/odoo_saas.conf /etc/nginx/sites-enabled/odoo_saas.conf
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+5. **Obtain TLS certificates**
+   ```bash
+   sudo bash scripts/letsencrypt_webroot.sh
+   # OR
+   sudo CLOUDFLARE_API_TOKEN=your_token bash scripts/letsencrypt_cloudflare_wildcard.sh   # see cloudflare.ini.example
+   ```
+6. **(Optional) Bootstrap a demo tenant**
+   ```bash
+   sudo ODOO_USER=odoo ODOO_DIR=/opt/odoo/odoo-16.0 ODOO_VENV=/opt/odoo/venv bash scripts/bootstrap_demo.sh demo
+   ```
+=======
 
 ### Docker (recommended)
 
