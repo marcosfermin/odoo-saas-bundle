@@ -86,6 +86,9 @@ spec:
             items:
               - key: odoo.conf
                 path: odoo.conf
+        - name: filestore
+          persistentVolumeClaim:
+            claimName: odoo-filestore
         - name: extra-addons
           emptyDir: {}
       affinity: {}
@@ -100,16 +103,3 @@ spec:
   resources:
     requests:
       storage: 20Gi
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: odoo
-  namespace: odoo-saas
-spec:
-  template:
-    spec:
-      volumes:
-        - name: filestore
-          persistentVolumeClaim:
-            claimName: odoo-filestore
