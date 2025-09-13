@@ -290,8 +290,8 @@ kubectl logs -n odoo-saas deployment/admin
 #### 1. Run Installation Scripts
 ```bash
 # Clone repository
-git clone https://github.com/yourorg/odoo-saas.git
-cd odoo-saas
+git clone https://github.com/marcosfermin/odoo-saas-bundle.git
+cd odoo-saas-bundle
 
 # Run as root
 sudo bash scripts/install_saas.sh
@@ -851,23 +851,13 @@ git checkout -b feature/your-feature
 
 ## 📞 Support
 
-### Documentation
-- [Full Documentation](https://docs.example.com)
-- [API Reference](https://api-docs.example.com)
-- [Video Tutorials](https://youtube.com/playlist)
-
-### Community
-- [Discord Server](https://discord.gg/odoo-saas)
-- [Forum](https://forum.example.com)
-- [Stack Overflow Tag](https://stackoverflow.com/questions/tagged/odoo-saas)
-
 ### Commercial Support
-- Email: support@example.com
-- Phone: +1-XXX-XXX-XXXX
-- [Support Portal](https://support.example.com)
+- Email: marcos@contaura.com
+- Phone: +1-347-201-8958
+- [Official Website](https://contaura.com)
 
 ### Bug Reports
-Please report bugs via [GitHub Issues](https://github.com/yourorg/odoo-saas/issues)
+Please report bugs via [GitHub Issues](https://github.com/marcosfermin/odoo-saas-bundle/issues)
 
 ## 📄 License
 
