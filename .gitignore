@@ -1,2 +1,57 @@
+# Environment files
+.env
+admin/.env
+*.env.local
+*.env.production
+
+# Certificates
+letsencrypt/
+certbot-www/
+*.pem
+*.key
+*.crt
+
+# Runtime directories
+pgdata/
+redisdata/
+odoo_filestore/
+admin_state/
+
+# Logs
+*.log
+logs/
+
+# Backups
+*.dump
+*.sql
+backups/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
 .DS_Store
-cloudflare.ini
+Thumbs.db
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+terraform.tfvars
+
+# Kubernetes secrets
+k8s/03-secrets/configured
+k8s/**/*-secret.yaml
+!k8s/**/*-secret.yaml.example

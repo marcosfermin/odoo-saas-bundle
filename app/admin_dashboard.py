@@ -74,10 +74,19 @@ BASE_DOMAIN = os.environ.get("DOMAIN", "odoo.example.com")
 BOOTSTRAP_EMAIL = os.environ.get("BOOTSTRAP_EMAIL", "owner@odoo.example.com")
 BOOTSTRAP_PASSWORD = os.environ.get("BOOTSTRAP_PASSWORD", "change_me_owner")
 
+# Database path configuration (supports Docker and host environments)
+DB_PATH = os.environ.get("ADMIN_DB_PATH", "/opt/odoo-admin/admin.db")
+DB_DIR = os.path.dirname(DB_PATH)
+
 app = Flask(__name__)
 app.secret_key = APP_SECRET
 csrf = URLSafeSerializer(APP_SECRET, salt="csrf-1")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////opt/odoo-admin/admin.db"
+
+# Ensure database directory exists
+if not os.path.exists(DB_DIR):
+    os.makedirs(DB_DIR, exist_ok=True)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -86,7 +95,12 @@ login_mgr = LoginManager(app)
 rconn = redis.from_url(REDIS_URL)
 q = Queue("odoo_admin_jobs", connection=rconn)
 
-s3 = boto3.client("s3", region_name=AWS_REGION)
+# Initialize S3 client with optional credentials
+if os.environ.get("AWS_ACCESS_KEY_ID"):
+    s3 = boto3.client("s3", region_name=AWS_REGION)
+else:
+    # Use IAM role/IRSA
+    s3 = boto3.client("s3", region_name=AWS_REGION)
 
 
 class Role:
@@ -137,6 +151,7 @@ class TenantMeta(db.Model):
 
 
 def run(cmd: str, check=True):
+    """Execute shell command safely"""
     p = subprocess.run(shlex.split(cmd), capture_output=True, text=True)
     if check and p.returncode != 0:
         raise RuntimeError(f"Command failed ({p.returncode}): {cmd}\n{p.stderr}")
@@ -144,12 +159,14 @@ def run(cmd: str, check=True):
 
 
 def has_perm(action: str):
+    """Check if current user has permission for action"""
     return current_user.is_authenticated and current_user.role in PERMISSIONS.get(
         action, set()
     )
 
 
 def record(action, target="", meta=None):
+    """Record audit log entry"""
     entry = AuditLog(
         actor=(current_user.email if current_user.is_authenticated else "system"),
         action=action,
@@ -161,19 +178,19 @@ def record(action, target="", meta=None):
 
 
 def require_perm(action):
+    """Decorator to require permission for view"""
     def decorator(view):
         @wraps(view)
         def wrapper(*args, **kwargs):
             if not has_perm(action):
                 abort(403)
             return view(*args, **kwargs)
-
         return wrapper
-
     return decorator
 
 
 def get_databases():
+    """Get list of tenant databases"""
     query = (
         'psql -tAc "SELECT datname FROM pg_database '
         f"WHERE datdba = (SELECT oid FROM pg_roles WHERE rolname='{ODOO_USER}') "
@@ -184,6 +201,7 @@ def get_databases():
 
 
 def db_size_bytes(dbname: str) -> int:
+    """Get database size in bytes"""
     q = f"psql -tAc \"SELECT pg_database_size('{dbname}');\""
     _, out, _ = run(q)
     try:
@@ -193,6 +211,7 @@ def db_size_bytes(dbname: str) -> int:
 
 
 def active_user_count(dbname: str) -> int:
+    """Get active user count for tenant"""
     q = f"psql -tAc \"SELECT COALESCE((SELECT COUNT(*) FROM res_users WHERE active),0) FROM pg_catalog.pg_tables WHERE tablename='res_users';\" -d {dbname}"
     _, out, _ = run(q)
     try:
@@ -202,23 +221,26 @@ def active_user_count(dbname: str) -> int:
 
 
 def service_cmd(cmd: str):
+    """Execute systemd service command"""
     return run(f"systemctl {cmd} {ODOO_SERVICE}", check=False)[1]
 
 
 def odoo_cli(dbname: str, args: str):
+    """Execute Odoo CLI command"""
     return run(
         f'su -s /bin/bash {ODOO_USER} -c "{shlex.quote(ODOO_VENV)}/bin/python {shlex.quote(ODOO_BIN)} -d {shlex.quote(dbname)} {args}"'
     )
 
 
 def alert(message: str):
+    """Send alert via configured channels"""
     if SLACK_WEBHOOK_URL:
         try:
             import requests
-
             requests.post(SLACK_WEBHOOK_URL, json={"text": message}, timeout=5)
-        except Exception:
-            pass
+        except Exception as e:
+            app.logger.error(f"Slack alert failed: {e}")
+            
     if SMTP_HOST and ALERT_EMAIL_TO:
         try:
             msg = MIMEText(message)
@@ -230,11 +252,12 @@ def alert(message: str):
                 if SMTP_USER:
                     s.login(SMTP_USER, SMTP_PASS)
                 s.sendmail(ALERT_EMAIL_FROM, [ALERT_EMAIL_TO], msg.as_string())
-        except Exception:
-            pass
+        except Exception as e:
+            app.logger.error(f"Email alert failed: {e}")
 
 
 def job_backup_tenant(dbname: str, local_tmp: str, s3_bucket: str, s3_key: str):
+    """Background job: backup tenant to S3"""
     run(f"pg_dump -Fc {shlex.quote(dbname)} -f {shlex.quote(local_tmp)}")
     extra = {"ServerSideEncryption": S3_SSE} if S3_SSE else {}
     if S3_SSE == "aws:kms" and S3_KMS_KEY_ID:
@@ -245,6 +268,7 @@ def job_backup_tenant(dbname: str, local_tmp: str, s3_bucket: str, s3_key: str):
 
 
 def ensure_lifecycle(bucket: str, prefix: str, days: int):
+    """Ensure S3 lifecycle policy exists"""
     try:
         rules = s3.get_bucket_lifecycle_configuration(Bucket=bucket).get("Rules", [])
     except Exception:
@@ -269,6 +293,7 @@ def ensure_lifecycle(bucket: str, prefix: str, days: int):
 
 
 def job_restore_tenant(dbname: str, s3_bucket: str, s3_key: str):
+    """Background job: restore tenant from S3"""
     tmp = f"/tmp/{secrets.token_hex(8)}.dump"
     s3.download_file(s3_bucket, s3_key, tmp)
     run(f"createdb -O {ODOO_USER} {shlex.quote(dbname)}", check=False)
@@ -278,6 +303,7 @@ def job_restore_tenant(dbname: str, s3_bucket: str, s3_key: str):
 
 
 def job_modules(dbname: str, install=None, upgrade=None):
+    """Background job: install/upgrade modules"""
     cmds = []
     if install:
         mods = ",".join(install)
@@ -429,8 +455,8 @@ def audit():
 def tenants_create():
     csrf.loads(request.form.get("_csrf", ""))
     dbname = request.form.get("dbname", "").strip()
-    if not dbname.isalnum():
-        flash("Database name must be alphanumeric.", "error")
+    if not dbname.replace("_", "").replace("-", "").isalnum():
+        flash("Database name must be alphanumeric (underscores and hyphens allowed).", "error")
         return redirect(url_for("index"))
     run(f"createdb -O {ODOO_USER} {dbname}")
     odoo_cli(dbname, "-i base --without-demo=all --stop-after-init --log-level=warn")
@@ -690,6 +716,12 @@ def billing_webhook():
     return ("ok", 200)
 
 
+@app.route("/health")
+def health():
+    """Health check endpoint"""
+    return {"status": "healthy"}, 200
+
+
 # ---- Templates ----
 TPL_BASE = """
 <!doctype html><html><head>
@@ -741,6 +773,21 @@ TPL_INDEX = """
 <div class="columns">
   <div class="column is-two-thirds">
     <h2 class="subtitle">Tenants</h2>
+    <div class="box">
+      <h3 class="subtitle">Create New Tenant</h3>
+      <form method="post" action="{{ url_for('tenants_create') }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <div class="field is-grouped">
+          <div class="control is-expanded">
+            <input class="input" name="dbname" placeholder="tenant_name" pattern="[a-z0-9_-]+" required>
+          </div>
+          <div class="control">
+            <button class="button is-primary">Create</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    
     <table class="table is-striped is-fullwidth">
       <thead><tr><th>Database</th><th>URL</th><th>Users</th><th>Size (GB)</th><th>Quota (GB)</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
@@ -766,14 +813,14 @@ TPL_INDEX = """
               <form style="display:inline" method="post" action="{{ url_for('tenants_backup') }}">
                 <input type="hidden" name="_csrf" value="{{ csrf_token }}">
                 <input type="hidden" name="dbname" value="{{ r.db }}">
-                <button class="button is-small">Backup -> S3</button>
+                <button class="button is-small">Backup</button>
               </form>
               <form style="display:inline" method="post" action="{{ url_for('tenants_suspend') }}">
                 <input type="hidden" name="_csrf" value="{{ csrf_token }}">
                 <input type="hidden" name="dbname" value="{{ r.db }}">
                 {% if r.suspended %}
                   <input type="hidden" name="action" value="unsuspend">
-                  <button class="button is-small is-success">Un-suspend</button>
+                  <button class="button is-small is-success">Unsuspend</button>
                 {% else %}
                   <input type="hidden" name="action" value="suspend">
                   <button class="button is-small is-warning">Suspend</button>
@@ -795,7 +842,7 @@ TPL_INDEX = """
       <form method="post" action="{{ url_for('tenants_restore') }}">
         <input type="hidden" name="_csrf" value="{{ csrf_token }}">
         <div class="field is-grouped">
-          <div class="control is-expanded"><input class="input" name="dbname" placeholder="tenant db" required></div>
+          <div class="control is-expanded"><input class="input" name="dbname" placeholder="tenant_db" required></div>
         </div>
         <div class="field"><label class="label">S3 key</label><input class="input" name="s3key" placeholder="{{ 'tenants/<db>/YYYY/MM/DD/HHMMSS.dump' }}" required></div>
         <button class="button is-link">Restore (queued)</button>
@@ -807,7 +854,7 @@ TPL_INDEX = """
       <form method="post" action="{{ url_for('modules') }}">
         <input type="hidden" name="_csrf" value="{{ csrf_token }}">
         <div class="field is-grouped">
-          <div class="control is-expanded"><input class="input" name="dbname" placeholder="tenant db" required></div>
+          <div class="control is-expanded"><input class="input" name="dbname" placeholder="tenant_db" required></div>
         </div>
         <div class="field"><label class="label">Install (comma-separated)</label><input class="input" name="install" placeholder="sale,crm,website"></div>
         <div class="field"><label class="label">Upgrade (comma-separated)</label><input class="input" name="upgrade" placeholder="base,stock"></div>
@@ -854,7 +901,7 @@ TPL_USERS = """
   <div class="field"><label class="label">Password</label><input class="input" name="password" type="password" required></div>
   <div class="field"><label class="label">Role</label>
     <div class="select"><select name="role">
-      <option>OWNER</option><option>ADMIN</option><option>VIEWER</option>
+      <option>ADMIN</option><option>OWNER</option><option>VIEWER</option>
     </select></div>
   </div>
   <button class="button is-primary">Create</button>
@@ -914,4 +961,6 @@ TPL_JOB_DETAIL = """
 app.jinja_env.globals["TPL_BASE"] = TPL_BASE
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=PORT, debug=False)
+    # Detect if running in Docker
+    host = "0.0.0.0" if os.environ.get("DOCKER_ENV") else "127.0.0.1"
+    app.run(host=host, port=PORT, debug=False)
