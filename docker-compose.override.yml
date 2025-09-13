@@ -18,11 +18,9 @@ services:
       - "8069"
       - "8072"
 
-  admin_workers:
-    # Override for scaling
-    # Use: docker compose up -d --scale admin_workers=5
-    deploy:
-      replicas: 3
+  # admin_workers is configured for scaling
+  # The container_name is removed here to allow multiple instances
+  # Use: docker compose up -d --scale admin_workers=5
 
   nginx:
     volumes:

@@ -1,6 +1,5 @@
 ---
 # Odoo SaaS Platform - Docker Compose Configuration
-# Remove 'version' as it's obsolete in Docker Compose v2
 
 services:
   postgres:
@@ -112,6 +111,13 @@ services:
       # Docker environment
       DOCKER_ENV: 1
       ADMIN_DB_PATH: /opt/odoo-admin/admin.db
+      # Odoo paths for admin operations
+      ODOO_USER: odoo
+      ODOO_DIR: /usr/lib/python3/dist-packages/odoo
+      ODOO_BIN: odoo
+      ODOO_VENV: /usr/lib/python3/dist-packages
+      ODOO_LOG: /var/lib/odoo/odoo.log
+      ODOO_SERVICE: odoo
     volumes:
       - ./app/admin_dashboard.py:/app/admin_dashboard.py:ro
       - admin_state:/opt/odoo-admin
@@ -130,7 +136,7 @@ services:
     build:
       context: ./admin
       dockerfile: Dockerfile
-    container_name: odoo_admin_workers
+    # No container_name to allow scaling
     restart: unless-stopped
     depends_on:
       admin:
@@ -151,14 +157,15 @@ services:
       S3_SSE: ${S3_SSE:-}
       S3_KMS_KEY_ID: ${S3_KMS_KEY_ID:-}
       DOCKER_ENV: 1
+      ODOO_USER: odoo
+      ODOO_DIR: /usr/lib/python3/dist-packages/odoo
+      ODOO_BIN: odoo
+      ODOO_VENV: /usr/lib/python3/dist-packages
+      ODOO_LOG: /var/lib/odoo/odoo.log
+      ODOO_SERVICE: odoo
     volumes:
       - ./app/admin_dashboard.py:/app/admin_dashboard.py:ro
     command: ["python", "-m", "rq.cli", "worker", "-u", "redis://redis:6379/0", "odoo_admin_jobs"]
-    healthcheck:
-      test: ["CMD-SHELL", "python -m rq.cli info -u redis://redis:6379/0 | grep -q odoo_admin_jobs"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
 
   nginx:
     image: nginx:stable-alpine
