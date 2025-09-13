@@ -154,8 +154,8 @@ sudo apt install -y \
 
 #### 1. Clone Repository
 ```bash
-git clone https://github.com/yourorg/odoo-saas.git
-cd odoo-saas
+git clone https://github.com/marcosfermin/odoo-saas-bundle.git
+cd odoo-saas-bundle
 ```
 
 #### 2. Configure Environment
