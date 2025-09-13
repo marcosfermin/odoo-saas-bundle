@@ -1,5 +1,6 @@
 ---
-version: "3.9"
+# Odoo SaaS Platform - Docker Compose Configuration
+# Remove 'version' as it's obsolete in Docker Compose v2
 
 services:
   postgres:
@@ -7,13 +8,13 @@ services:
     container_name: odoo_pg
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${PG_USER}
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_USER: ${PG_USER:-odoo}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-changeme}
       POSTGRES_DB: postgres
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PG_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-odoo}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -40,11 +41,11 @@ services:
         condition: service_healthy
     environment:
       HOST: postgres
-      USER: ${PG_USER}
-      PASSWORD: ${PG_PASSWORD}
-      WORKERS: "4"
-      LIMIT_TIME_CPU: "120"
-      LIMIT_TIME_REAL: "240"
+      USER: ${PG_USER:-odoo}
+      PASSWORD: ${PG_PASSWORD:-changeme}
+      WORKERS: ${WORKERS:-4}
+      LIMIT_TIME_CPU: ${LIMIT_TIME_CPU:-120}
+      LIMIT_TIME_REAL: ${LIMIT_TIME_REAL:-240}
     command: [
       "odoo",
       "-c", "/etc/odoo/odoo.conf",
@@ -75,16 +76,52 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    env_file:
-      - ./admin/.env
+    environment:
+      # Database settings
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: ${PG_USER:-odoo}
+      PG_PASSWORD: ${PG_PASSWORD:-changeme}
+      # Admin settings
+      SECRET_KEY: ${SECRET_KEY:-changeme_random_32chars}
+      BOOTSTRAP_EMAIL: ${BOOTSTRAP_EMAIL:-owner@example.com}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-changeme}
+      PORT: 9090
+      DOMAIN: ${DOMAIN:-odoo.example.com}
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      # AWS (optional)
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_PREFIX: ${S3_PREFIX:-tenants}
+      S3_SSE: ${S3_SSE:-}
+      S3_KMS_KEY_ID: ${S3_KMS_KEY_ID:-}
+      S3_LIFECYCLE_DAYS: ${S3_LIFECYCLE_DAYS:-30}
+      # Webhooks (optional)
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      STRIPE_SIGNING_SECRET: ${STRIPE_SIGNING_SECRET:-}
+      PADDLE_PUBLIC_KEY_BASE64: ${PADDLE_PUBLIC_KEY_BASE64:-}
+      # Alerts (optional)
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-odoo-admin@example.com}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      # Docker environment
+      DOCKER_ENV: 1
+      ADMIN_DB_PATH: /opt/odoo-admin/admin.db
     volumes:
+      - ./app/admin_dashboard.py:/app/admin_dashboard.py:ro
+      - admin_state:/opt/odoo-admin
       - odoo_log:/var/log/odoo:ro
     expose:
       - "9090"
     healthcheck:
       test:
         - CMD-SHELL
-        - curl -fsS http://localhost:9090/login | grep -q 'Admin Login'
+        - curl -fsS http://localhost:9090/health || exit 1
       interval: 20s
       timeout: 5s
       retries: 10
@@ -100,11 +137,25 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    env_file:
-      - ./admin/.env
-    command: ["rq", "worker", "-u", "${REDIS_URL}", "odoo_admin_jobs"]
+    environment:
+      # Same environment as admin
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: ${PG_USER:-odoo}
+      PG_PASSWORD: ${PG_PASSWORD:-changeme}
+      SECRET_KEY: ${SECRET_KEY:-changeme_random_32chars}
+      REDIS_URL: redis://redis:6379/0
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_PREFIX: ${S3_PREFIX:-tenants}
+      S3_SSE: ${S3_SSE:-}
+      S3_KMS_KEY_ID: ${S3_KMS_KEY_ID:-}
+      DOCKER_ENV: 1
+    volumes:
+      - ./app/admin_dashboard.py:/app/admin_dashboard.py:ro
+    command: ["python", "-m", "rq.cli", "worker", "-u", "redis://redis:6379/0", "odoo_admin_jobs"]
     healthcheck:
-      test: ["CMD-SHELL", "rq info -u ${REDIS_URL} | grep -q odoo_admin_jobs"]
+      test: ["CMD-SHELL", "python -m rq.cli info -u redis://redis:6379/0 | grep -q odoo_admin_jobs"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -119,6 +170,7 @@ services:
     volumes:
       - ./config/nginx/site.conf:/etc/nginx/conf.d/default.conf:ro
       - ./config/nginx/snippets:/etc/nginx/snippets:ro
+      - ./config/nginx/.admin_htpasswd:/etc/nginx/.admin_htpasswd:ro
       - letsencrypt:/etc/letsencrypt
       - certbot-www:/var/www/certbot
     ports:
@@ -135,5 +187,6 @@ volumes:
   redisdata:
   odoo_filestore:
   odoo_log:
+  admin_state:
   letsencrypt:
   certbot-www:
